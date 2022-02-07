@@ -1,0 +1,76 @@
+---
+title: "Associative analysis"
+author: "Kevin Kilonzo"
+date: "04/02/2022"
+output: html_document
+---
+## LOADING LIBRARIES
+```{r}
+# Loading libraries required 
+library(data.table) # For datatable and dataframe manipulation
+library(tidyverse)  # Various packages for datamanipulation and visualisation
+library(arules)  # For association rules analysis
+```
+
+## CREATING TRANSACTIONS
+```{r}
+
+Transactions <- read.transactions("http://bit.ly/SupermarketDatasetII")
+
+# Verifying the object's class
+class(Transactions)
+
+# Previewing our first 5 transactions
+inspect(Transactions[1:5])
+
+# Generating a summary of the transaction dataset
+summary(Transactions)
+
+```
+## FILTERING
+```{r}
+# Producing a chart of frequencies and fitering 
+# to consider only items with a minimum percentage 
+# of support/ considering a top x of items
+# ---
+# Displaying top 10 most common items in the transactions dataset 
+# and the items whose relative importance is at least 5%%
+# 
+par(mfrow = c(1, 1))
+
+# plot the frequency of items
+itemFrequencyPlot(Transactions, topN = 10,col="darkgreen")
+itemFrequencyPlot(Transactions, support = 0.05,col="darkred")
+```
+## ASSOCIATION RULES
+```{r}
+# Building a model based on association rules 
+# We use Min Support as 0.001 and confidence as 0.8
+
+rules <- apriori (Transactions, parameter = list(supp = 0.001, conf = 0.8))
+rules
+
+```
+We find out using support of 0.1% and confidence of 0.8 we get 271 rules. These are enough to make intersting observations and associations about the transactions
+
+```{r}
+# TO perform an exploration of our model 
+summary(rules)
+
+# Observing rules built in our model i.e. first 5 model rules
+
+inspect(rules[1:5])
+```
+```{r}
+# Ordering by the level of confidence
+
+rules<-sort(rules, by="confidence", decreasing=TRUE)
+inspect(rules[1:10])
+```
+The highest confidence is 1 for a number of rules
+```{r}
+# Ordering by count to see the most common rule
+rules<-sort(rules, by="count", decreasing=TRUE)
+inspect(rules[1:10])
+```
+* Yoghurt to fat has the highest count with a confidence of 0.94

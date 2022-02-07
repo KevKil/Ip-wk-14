@@ -1,0 +1,159 @@
+---
+title: "Dimension reduction and Feature selection "
+author: "Kevin Kilonzo"
+date: "04/02/2022"
+output: html_document
+---
+# DIMENSION REDUCTION
+## LOADING THE DATASET
+```{r}
+# Lading the libraries
+library(data.table)
+library(tidyverse)
+library(ggbiplot)
+
+# Loading the dataset
+df <- fread("http://bit.ly/CarreFourDataset")
+
+# Preview of the head of the dataset
+head(df)
+
+# Preview of the tail of the dataset
+tail(df)
+
+# Preview of the number of rows and columns
+dim(df)
+
+# Checking the column datatypes
+str(df)
+```
+## CLEANING THE DATASET
+```{r}
+# Change column names to lowercase and remove spaces
+names(df) <- tolower(names(df)) # Change col names to lowercase
+names(df) <- gsub(" ","_",names(df)) # replace space with _
+
+# Checking for null values
+colSums( is.na(df))
+
+# Checking for duplicates
+df[duplicated(df),]
+
+# Getting the summary statistics
+summary(df)
+```
+
+## PCA
+```{r}
+# Selecting the numerical columns for analysis
+cont_var <- c("unit_price","tax","cogs","gross_income","gross_income")
+df_cont <- df[,..cont_var]
+
+# Perform PCA
+df.pca <- prcomp(df_cont, center = T, scale. = T)
+# Check PCA stats
+summary(df.pca)
+ 
+# Check PCA
+df.pca
+
+```
+The first two principal components explain all of the variance and thus the dimensions can be reduced to two
+```{r}
+# Checking PCA decomposition
+str(df.pca)
+
+# Plotting PCA biplot
+ggbiplot(df.pca, obs.scale = 1, var.scale = 1)
+
+```
+In PC1 tax,cogs,gross income and unit price are all equally important variables
+In PC2 unit price is the most important variable
+## Correlated features
+```{r}
+
+# drop the unnecessarry columns
+df1 <- df[,-c(1,9,10,13)]
+
+# Get all character columns
+char<- df1 %>% 
+  select_if(is.character)
+# convert to numerical
+
+df1$branch <- as.factor(df1$branch)
+df1$branch <- as.integer(df1$branch)
+df1$customer_type <- as.integer(as.factor(df1$customer_type))
+df1$gender <- as.integer(as.factor(df1$gender))
+df1$product_line <- as.integer(as.factor(df1$product_line))
+df1$payment <- as.integer(as.factor(df1$payment))
+```  
+
+```{r}
+# Installing libraries
+library(caret)
+library(corrplot)
+
+# Calculating the correlation matrix
+correlationMatrix <- cor(df1)
+correlationMatrix
+
+# Find attributes that are highly correlated
+highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.75)
+highlyCorrelated
+
+# Highly correlated attributes
+highlyCorrelated
+
+names(df1[,..highlyCorrelated])
+```
+```{r}
+# We can remove the variables with a higher correlation 
+# and comparing the results graphically as shown below
+# ---
+# 
+# Removing Redundant Features 
+# ---
+# 
+df2<-df1[,-c(9,12,7)]
+
+# Performing our graphical comparison
+# ---
+# 
+par(mfrow = c(1, 1))
+corrplot(correlationMatrix,method="number", order = "hclust")
+corrplot(cor(df2),method="number", order = "hclust")
+
+```
+The features which have high correlation are dropped they are cogs, total and tax
+## Embedded method
+```{r}
+# Load the library
+library(wskm)
+# Create the model for embedding
+set.seed(2)
+model <- ewkm(df1, 3, lambda=2, maxiter=1000)
+
+```
+```{r}
+# Loading the cluster library
+library("cluster")
+
+# Cluster Plot against 1st 2 principal components
+clusplot(df1, model$cluster, color=TRUE, shade=TRUE,
+         labels=2, lines=1,main='Cluster Analysis for Sales')
+
+```
+```{r}
+# Weights are calculated for each variable and cluster. 
+# They are a measure of the relative importance of each variable 
+# with regards to the membership of the observations to that cluster. 
+# The weights are incorporated into the distance function, 
+# typically reducing the distance for more important variables.
+# Weights remain stored in the model and we can check them as follows:
+# 
+round(model$weights*100,2)
+```
+Customer type and gender are the most important features for clustering as they have the lowest weights
+
+
+

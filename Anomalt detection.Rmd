@@ -1,0 +1,44 @@
+---
+title: "Anomaly detection"
+author: "Kevin Kilonzo"
+date: "04/02/2022"
+output: html_document
+---
+## LOADING LIBRARIES
+```{r}
+library(data.table)
+library(tidyverse)
+library(anomalize)
+```
+
+```{r}
+df <- fread("http://bit.ly/CarreFourSalesDataset")
+
+# Preview of the head of the dataset
+head(df)
+
+# Preview of the tail of the dataset
+tail(df)
+
+# Preview of the number of rows and columns
+dim(df)
+
+# Checking the column datatypes
+str(df)
+```
+
+```{r}
+# Convert date column to datetime
+library(lubridate) # library to read date format
+df$Date <- parse_date_time(df$Date, "%m%d%y" )
+
+# Convert dataframe to tibble for time series analysis
+df_tib <- as.tibble(df)
+df_tib %>%
+    time_decompose(Sales) %>%
+    anomalize(remainder) %>%
+    time_recompose() %>%
+    plot_anomalies(time_recomposed = TRUE, alpha_dots = 0.5)
+```
+From the analysis the sales are within expectations and there are no anomalies detected
+To get anomalies we may increase the threshold with increasing the alpha level above 0.5
